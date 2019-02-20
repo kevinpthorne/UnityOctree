@@ -28,9 +28,37 @@ public class BoundsOctreeNode<T> {
 	const int numObjectsAllowed = 8;
 
 	// An object in the octree
-	class OctreeObject {
+	struct OctreeObject {
 		public T Obj;
 		public Bounds Bounds;
+
+		public override int GetHashCode()
+		{
+			var hashCode = Bounds.GetHashCode();
+
+			if (Obj != null)
+				hashCode ^= Obj.GetHashCode();
+
+			return hashCode;
+		}
+
+		public override bool Equals(object obj)
+		{
+			if (obj == null)
+				return false;
+
+			if (!(obj is OctreeObject))
+				return false;
+
+			var other = (OctreeObject)obj;
+			if (Bounds != other.Bounds)
+				return false;
+
+			if (Obj == null && other.Obj == null)
+				return true;
+
+			return Obj.Equals(other.Obj);
+		}
 	}
 
 	/// <summary>
@@ -69,8 +97,10 @@ public class BoundsOctreeNode<T> {
 		bool removed = false;
 
 		for (int i = 0; i < objects.Count; i++) {
-			if (objects[i].Obj.Equals(obj)) {
-				removed = objects.Remove(objects[i]);
+			if (objects[i].Obj.Equals(obj))
+			{
+				removed = true;
+				objects.RemoveAt(i);
 				break;
 			}
 		}
@@ -363,7 +393,7 @@ public class BoundsOctreeNode<T> {
 	// #### PRIVATE METHODS ####
 
 	/// <summary>
-	/// Set values for this node. 
+	/// Set values for this node.
 	/// </summary>
 	/// <param name="baseLengthVal">Length of this node, not taking looseness into account.</param>
 	/// <param name="minSizeVal">Minimum size of nodes in this octree.</param>
@@ -427,7 +457,7 @@ public class BoundsOctreeNode<T> {
 					bestFitChild = BestFitChild(existingObj.Bounds);
 					// Does it fit?
 					if (Encapsulates(children[bestFitChild].bounds, existingObj.Bounds)) {
-						children[bestFitChild].SubAdd(existingObj.Obj, existingObj.Bounds); // Go a level deeper					
+						children[bestFitChild].SubAdd(existingObj.Obj, existingObj.Bounds); // Go a level deeper
 						objects.Remove(existingObj); // Remove from here
 					}
 				}
