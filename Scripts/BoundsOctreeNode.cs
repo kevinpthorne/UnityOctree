@@ -41,6 +41,34 @@ public class BoundsOctreeNode<T> {
 	struct OctreeObject {
 		public T Obj;
 		public Bounds Bounds;
+
+		public override int GetHashCode()
+		{
+			var hashCode = Bounds.GetHashCode();
+
+			if (Obj != null)
+				hashCode ^= Obj.GetHashCode();
+
+			return hashCode;
+		}
+
+		public override bool Equals(object obj)
+		{
+			if (obj == null)
+				return false;
+
+			if (!(obj is OctreeObject))
+				return false;
+
+			var other = (OctreeObject)obj;
+			if (Bounds != other.Bounds)
+				return false;
+
+			if (Obj == null && other.Obj == null)
+				return true;
+
+			return Obj.Equals(other.Obj);
+		}
 	}
 
 	/// <summary>
@@ -79,8 +107,10 @@ public class BoundsOctreeNode<T> {
 		bool removed = false;
 
 		for (int i = 0; i < objects.Count; i++) {
-			if (objects[i].Obj.Equals(obj)) {
-				removed = objects.Remove(objects[i]);
+			if (objects[i].Obj.Equals(obj))
+			{
+				removed = true;
+				objects.RemoveAt(i);
 				break;
 			}
 		}
@@ -430,14 +460,14 @@ public class BoundsOctreeNode<T> {
 
     // #### PRIVATE METHODS ####
 
-    /// <summary>
-    /// Set values for this node. 
-    /// </summary>
-    /// <param name="baseLengthVal">Length of this node, not taking looseness into account.</param>
-    /// <param name="minSizeVal">Minimum size of nodes in this octree.</param>
-    /// <param name="loosenessVal">Multiplier for baseLengthVal to get the actual size.</param>
-    /// <param name="centerVal">Centre position of this node.</param>
-    void SetValues(float baseLengthVal, float minSizeVal, float loosenessVal, Vector3 centerVal) {
+	/// <summary>
+	/// Set values for this node.
+	/// </summary>
+	/// <param name="baseLengthVal">Length of this node, not taking looseness into account.</param>
+	/// <param name="minSizeVal">Minimum size of nodes in this octree.</param>
+	/// <param name="loosenessVal">Multiplier for baseLengthVal to get the actual size.</param>
+	/// <param name="centerVal">Centre position of this node.</param>
+	void SetValues(float baseLengthVal, float minSizeVal, float loosenessVal, Vector3 centerVal) {
 		BaseLength = baseLengthVal;
 		minSize = minSizeVal;
 		looseness = loosenessVal;
@@ -498,7 +528,7 @@ public class BoundsOctreeNode<T> {
 					bestFitChild = BestFitChild(existingObj.Bounds.center);
 					// Does it fit?
 					if (Encapsulates(children[bestFitChild].bounds, existingObj.Bounds)) {
-						children[bestFitChild].SubAdd(existingObj.Obj, existingObj.Bounds); // Go a level deeper					
+						children[bestFitChild].SubAdd(existingObj.Obj, existingObj.Bounds); // Go a level deeper
 						objects.Remove(existingObj); // Remove from here
 					}
 				}
@@ -610,6 +640,22 @@ public class BoundsOctreeNode<T> {
 				totalObjects += child.objects.Count;
 			}
 		}
-		return totalObjects <= NUM_OBJECTS_ALLOWED;
+		return totalObjects <= numObjectsAllowed;
+	}
+
+	/// <summary>
+	/// Checks if this node or anything below it has something in it.
+	/// </summary>
+	/// <returns>True if this node or any of its children, grandchildren etc have something in them</returns>
+	internal bool HasAnyObjects() {
+		if (objects.Count > 0) return true;
+
+		if (children != null) {
+			for (int i = 0; i < 8; i++) {
+				if (children[i].HasAnyObjects()) return true;
+			}
+		}
+
+		return false;
 	}
 }
